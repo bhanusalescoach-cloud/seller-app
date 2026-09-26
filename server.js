@@ -6,11 +6,11 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = 5000;
-const SECRET = 'ratnawat-secret-key';
+const PORT = process.env.PORT || 5000;
+const SECRET = process.env.JWT_SECRET || 'ratnawat-secret-key';
 
-const GMAIL_USER = 'RATNAWATENTERPRISE@GMAIL.COM';
-const GMAIL_APP_PASSWORD = 'zwfu wtqa gvar drfk';
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
