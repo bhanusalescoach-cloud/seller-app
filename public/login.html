@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIVA - Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center">
+<div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 w-full max-w-sm">
+  <h1 class="text-xl font-bold text-white mb-1">RIVA</h1>
+  <p class="text-[10px] text-slate-500 mb-4">(by Ratnawat Enterprises)</p>
+
+  <div id="tabs" class="flex mb-4 border-b border-slate-800">
+    <button id="tabLogin" class="flex-1 py-2 text-xs font-bold text-indigo-400 border-b-2 border-indigo-500">Login</button>
+    <button id="tabRegister" class="flex-1 py-2 text-xs font-bold text-slate-500">Register</button>
+  </div>
+
+  <form id="login-form" class="space-y-3">
+    <input id="login-email" type="email" placeholder="Email" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white">
+    <input id="login-password" type="password" placeholder="Password" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white">
+    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs">Login</button>
+  </form>
+
+  <form id="register-form" class="space-y-3 hidden">
+    <input id="reg-username" type="text" placeholder="Username" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white">
+    <input id="reg-email" type="email" placeholder="Email" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white">
+    <input id="reg-password" type="password" placeholder="Password" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white">
+    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs">Register</button>
+  </form>
+
+  <form id="otp-form" class="space-y-3 hidden">
+    <p class="text-xs text-slate-400">Aapke email par OTP bheja gaya hai. Neeche daalein.</p>
+    <input id="otp-code" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit OTP" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white tracking-widest text-center">
+    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs">Verify OTP</button>
+    <button type="button" id="resendOtp" class="w-full text-[11px] text-indigo-400 underline">OTP dobara bhejein</button>
+  </form>
+
+  <p id="msg" class="text-xs text-center mt-3 text-rose-400"></p>
+</div>
+
+<script>
+const API_URL = 'http://localhost:5000/api/auth';
+const tabLogin = document.getElementById('tabLogin');
+const tabRegister = document.getElementById('tabRegister');
+const loginForm = document.getElementById('login-form');
+const regForm = document.getElementById('register-form');
+const otpForm = document.getElementById('otp-form');
+const msg = document.getElementById('msg');
+let pendingEmail = '';
+
+function showOnly(form) {
+  [loginForm, regForm, otpForm].forEach(f => f.classList.add('hidden'));
+  form.classList.remove('hidden');
+}
+
+tabLogin.onclick = () => {
+  showOnly(loginForm);
+  tabLogin.classList.add('text-indigo-400','border-b-2','border-indigo-500');
+  tabRegister.classList.remove('text-indigo-400','border-b-2','border-indigo-500');
+};
+tabRegister.onclick = () => {
+  showOnly(regForm);
+  tabRegister.classList.add('text-indigo-400','border-b-2','border-indigo-500');
+  tabLogin.classList.remove('text-indigo-400','border-b-2','border-indigo-500');
+};
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  msg.classList.remove('text-emerald-400'); msg.classList.add('text-rose-400'); msg.textContent = '';
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  try {
+    const res = await fetch(`${API_URL}/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      msg.textContent = data.message;
+      if (data.message && data.message.toLowerCase().includes('verify')) {
+        pendingEmail = email;
+        document.getElementById('otp-code').value = '';
+        showOnly(otpForm);
+      }
+      return;
+    }
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('username', data.username);
+    window.location.href = '/index.html';
+  } catch (err) { msg.textContent = 'Server se connect nahi ho paya'; }
+});
+
+regForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  msg.classList.remove('text-emerald-400'); msg.classList.add('text-rose-400'); msg.textContent = '';
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  try {
+    const res = await fetch(`${API_URL}/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { msg.textContent = data.message; return; }
+    pendingEmail = email;
+    msg.classList.remove('text-rose-400'); msg.classList.add('text-emerald-400');
+    msg.textContent = data.message;
+    document.getElementById('otp-code').value = '';
+    showOnly(otpForm);
+  } catch (err) { msg.textContent = 'Server se connect nahi ho paya'; }
+});
+
+otpForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  msg.classList.remove('text-emerald-400'); msg.classList.add('text-rose-400'); msg.textContent = '';
+  const otp = document.getElementById('otp-code').value.trim();
+  try {
+    const res = await fetch(`${API_URL}/verify-otp`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingEmail, otp })
+    });
+    const data = await res.json();
+    if (!res.ok) { msg.textContent = data.message; return; }
+    msg.classList.remove('text-rose-400'); msg.classList.add('text-emerald-400');
+    msg.textContent = 'Verified! Ab login karein.';
+    showOnly(loginForm);
+    document.getElementById('login-email').value = pendingEmail;
+  } catch (err) { msg.textContent = 'Server se connect nahi ho paya'; }
+});
+
+document.getElementById('resendOtp').addEventListener('click', async () => {
+  msg.classList.remove('text-emerald-400'); msg.classList.add('text-rose-400');
+  msg.textContent = 'Naya OTP register form se hi bhej sakte hain abhi.';
+});
+</script>
+</body>
+</html>
